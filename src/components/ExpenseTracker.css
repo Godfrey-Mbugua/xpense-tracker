@@ -53,6 +53,72 @@ body {
   color: var(--gray-800);
 }
 
+/* User Header Styles - Added for authentication */
+.user-header {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1rem 2rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end;
+  animation: slideDown 0.3s ease-out;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.welcome-text {
+  font-weight: 500;
+  color: var(--gray-700);
+  font-size: 0.95rem;
+}
+
+.welcome-text::before {
+  content: '👋';
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
+.logout-btn {
+  padding: 0.5rem 1.25rem;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logout-btn::after {
+  content: '→';
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #e53e3e;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.logout-btn:hover::after {
+  transform: translateX(4px);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+}
+
+/* Main content layout */
 .main-content {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -75,6 +141,19 @@ body {
   box-shadow: var(--shadow-xl);
 }
 
+/* Animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive styles */
 @media (max-width: 1024px) {
   .main-content {
     grid-template-columns: 350px 1fr;
@@ -91,14 +170,80 @@ body {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+  
+  .user-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .user-info {
+    gap: 1rem;
+  }
+  
+  .welcome-text {
+    font-size: 0.875rem;
+  }
+  
+  .welcome-text::before {
+    margin-right: 0.25rem;
+  }
+  
+  .logout-btn {
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
   .expense-tracker {
     padding: 0.5rem;
   }
+  
+  .user-header {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .user-info {
+    gap: 0.75rem;
+  }
+  
+  .welcome-text {
+    font-size: 0.8rem;
+  }
+  
+  .logout-btn {
+    padding: 0.35rem 0.875rem;
+    font-size: 0.75rem;
+  }
 }
 
+/* Dark mode support for user header */
+@media (prefers-color-scheme: dark) {
+  .user-header {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+  }
+  
+  .welcome-text {
+    color: var(--gray-300);
+  }
+  
+  .logout-btn {
+    background: #e53e3e;
+  }
+  
+  .logout-btn:hover {
+    background: #c53030;
+  }
+}
+
+/* Print styles */
+@media print {
+  .user-header {
+    display: none;
+  }
+}
+
+/* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

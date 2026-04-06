@@ -1,94 +1,117 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 import Header from './Header/Header';
+import { FiSmile } from 'react-icons/fi';
 import Dashboard from './Dashboard/Dashboard';
 import ExpenseForm from './ExpenseForm/ExpenseForm';
 import ExpenseList from './ExpenseList/ExpenseList';
 import LoadingSpinner from './Loading/LoadingSpinner';
 import ErrorMessage from './Error/ErrorMessage';
-import { useExpenses } from '../hooks/useExpenses';
-import { useForm } from '../hooks/useForm';
 import { INITIAL_FORM_STATE } from '../utils/constants';
 import './ExpenseTracker.css';
 
 const ExpenseTracker = () => {
-  const { expenses, loading, error, addExpense, deleteExpense, updateExpense } = useExpenses();
-  const { formData, handleInputChange, resetForm, setForm } = useForm(INITIAL_FORM_STATE);
-  
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [filterCategory, setFilterCategory] = useState('All');
   const [sortBy, setSortBy] = useState('date');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const titleInputRef = useRef(null);
   const amountInputRef = useRef(null);
 
-  // Auto-focus on title input when form is empty
+  // Fetch expenses
   useEffect(() => {
-    if (!formData.title && titleInputRef.current) {
-      titleInputRef.current.focus();
+    fetchExpenses();
+  }, []);
+
+  const fetchExpenses = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/expenses');
+      setExpenses(response.data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch expenses');
+    } finally {
+      setLoading(false);
     }
-  }, [formData.title]);
+  };
+
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }, []);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.amount) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const expenseData = {
-      ...formData,
-      amount: parseFloat(formData.amount),
-      id: isEditing ? editingId : Date.now()
-    };
-
-    let result;
-    if (isEditing) {
-      result = await updateExpense(editingId, expenseData);
-    } else {
-      result = await addExpense(expenseData);
-    }
-
-    if (result.success) {
+    try {
+      if (isEditing) {
+        await api.put(`/expenses/${editingId}`, {
+          ...formData,
+          amount: parseFloat(formData.amount)
+        });
+      } else {
+        await api.post('/expenses', {
+          ...formData,
+          amount: parseFloat(formData.amount)
+        });
+      }
+      
+      await fetchExpenses();
       resetForm();
-      setIsEditing(false);
-      setEditingId(null);
-      titleInputRef.current?.focus();
-    } else {
-      alert('Failed to save expense. Please try again.');
+    } catch (err) {
+      alert('Failed to save expense');
     }
-  }, [formData, isEditing, editingId, addExpense, updateExpense, resetForm]);
+  }, [formData, isEditing, editingId]);
 
   const handleEdit = useCallback((expense) => {
-    setForm({
+    setFormData({
       title: expense.title,
       amount: expense.amount.toString(),
       category: expense.category,
-      date: expense.date
+      date: expense.date.split('T')[0]
     });
     setIsEditing(true);
-    setEditingId(expense.id);
+    setEditingId(expense._id);
     amountInputRef.current?.focus();
-  }, [setForm]);
+  }, []);
 
   const handleDelete = useCallback(async (id) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
-      const result = await deleteExpense(id);
-      if (!result.success) {
-        alert('Failed to delete expense. Please try again.');
+      try {
+        await api.delete(`/expenses/${id}`);
+        await fetchExpenses();
+      } catch (err) {
+        alert('Failed to delete expense');
       }
     }
-  }, [deleteExpense]);
+  }, []);
 
-  const handleCancelEdit = useCallback(() => {
-    resetForm();
+  const resetForm = useCallback(() => {
+    setFormData(INITIAL_FORM_STATE);
     setIsEditing(false);
     setEditingId(null);
-  }, [resetForm]);
+    titleInputRef.current?.focus();
+  }, []);
 
-  // Get unique categories for filter
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const categories = useMemo(() => {
     return ['All', ...new Set(expenses.map(exp => exp.category))];
   }, [expenses]);
@@ -102,13 +125,23 @@ const ExpenseTracker = () => {
       <ErrorMessage 
         type="server-error"
         message={error}
-        onRetry={() => window.location.reload()}
+        onRetry={fetchExpenses}
       />
     );
   }
 
   return (
     <div className="expense-tracker">
+      <div className="user-header">
+        <div className="user-info">
+          <FiSmile className="welcome-icon" />
+          <span className="welcome-text">Welcome, {user?.name}!</span>
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
+        </div>
+      </div>
+      
       <Header />
       
       <Dashboard expenses={expenses} />
@@ -119,7 +152,7 @@ const ExpenseTracker = () => {
             formData={formData}
             onInputChange={handleInputChange}
             onSubmit={handleSubmit}
-            onCancel={handleCancelEdit}
+            onCancel={resetForm}
             isEditing={isEditing}
             titleInputRef={titleInputRef}
             amountInputRef={amountInputRef}
